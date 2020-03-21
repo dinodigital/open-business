@@ -1,6 +1,13 @@
 import time
 
+from mintersdk.minterapi import MinterAPI
 from mintersdk.sdk.transactions import MinterSellAllCoinTx, MinterMultiSendCoinTx
+
+from secret.private_key import private_key
+from settings import NODE_API_URL, payouts, paying_taxes, paying_delegators, wallet, payload
+from val import easy_create_multisend_list
+
+api = MinterAPI(NODE_API_URL)
 
 
 def only_symbol(human_balances, symbol):
@@ -13,12 +20,7 @@ def only_symbol(human_balances, symbol):
             return True
 
 
-def seed():
-    with open('local/seed.txt', 'r') as f:
-        return f.read()
-
-
-def human_balances(api, wallet):
+def human_balances(wallet):
     """Возвращает нормальные балансы, а не строки с кучей нулей"""
     wallet_balance_data = api.get_balance(wallet)
     balances = wallet_balance_data['result']['balance']
@@ -39,17 +41,7 @@ def append_tx(txs, to, value):
     })
 
 
-def count_commissions(num_of_recipients, payload):
-    """
-    Счиатет комиссии на multisend в сети Minter
-    :param num_of_recipients: int
-    :param payload: str
-    :return: float
-    """
-    return (10+(num_of_recipients-1)*5)*0.001
-
-
-def wait_for_nonce(api, address, old_nonce):
+def wait_for_nonce(address, old_nonce):
     while True:
         nonce = api.get_nonce(address)
         if nonce != old_nonce:
@@ -58,11 +50,10 @@ def wait_for_nonce(api, address, old_nonce):
         time.sleep(1)
 
 
-def convert_all_wallet_coins_to(symbol, api, wallet, private_key, balances):
+def convert_all_wallet_coins_to(symbol, wallet, private_key, balances):
     """
     Конвертируем все монеты в кошельке в монету symbol
     :param symbol: COINNAME (str)
-    :param api:
     :param wallet:
     :param private_key:
     :param balances:
@@ -87,7 +78,7 @@ def convert_all_wallet_coins_to(symbol, api, wallet, private_key, balances):
                 i -= 1
                 if i > 0:
                     print('Waiting for nonce')
-                    wait_for_nonce(api, wallet, nonce)
+                    wait_for_nonce(wallet, nonce)
 
 
 def write_taxes_and_return_remains(bip_total, payouts):
@@ -103,11 +94,55 @@ def write_founders_values(to_be_payed, payouts):
 
 
 # Генерация и отправка Multisend транзакции
-def multisend(api, private_key,  wallet, txs, gas_coin='BIP', payload=''):
+def multisend(txs, bip_total, gas_coin='BIP'):
     nonce = api.get_nonce(wallet)
+
+    # Считаем комиссию
     tx = MinterMultiSendCoinTx(txs, nonce=nonce, gas_coin=gas_coin, payload=payload)
+    commission = tx.get_fee()/1000000000000000000
+
+    print(commission)
+
+    # Пересчитываем выплаты
+    bip_total = bip_total - commission
+    payouts = count_money(bip_total)
+    txs = make_txs(payouts)
+    tx.txs = txs
+
     tx.sign(private_key=private_key)
     r = api.send_transaction(tx.signed_tx)
 
     print(f'Multisend успешно отправлен.\n\nSend TX response:\n{r}')
     return tx
+
+
+# Считаем кому сколько платить
+def count_money(bip_total):
+    after_taxes = write_taxes_and_return_remains(bip_total, payouts)  # Налоги
+    payouts['delegators']['to_be_payed'] = after_taxes * payouts['delegators']['percent']  # Делегаторам
+    founders_to_be_payed = after_taxes - payouts['delegators']['to_be_payed']  # Основателям
+    write_founders_values(founders_to_be_payed, payouts)
+    return payouts
+
+
+# ---------------------------------------------------------------------------------------------
+# Генерация multisend списка для оправки
+# ---------------------------------------------------------------------------------------------
+
+def make_txs(payouts):
+    txs = []
+
+    # Налоги
+    if paying_taxes:
+        append_tx(txs, payouts['taxes']['wallet'], payouts['taxes']['value'])
+
+    # Основатели
+    for _, f_dict in payouts['founders'].items():
+        append_tx(txs, f_dict['wallet'], f_dict['value'])
+
+    # Делегаторы
+    if paying_delegators:
+        delegators_multisend_list = easy_create_multisend_list(payouts['delegators']['to_be_payed'])
+        txs = txs + delegators_multisend_list  # Формируем окончательный список
+
+    return txs

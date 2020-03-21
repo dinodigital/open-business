@@ -1,43 +1,39 @@
-'''
+"""
 Скрипт который вытаскивает всех делегаторов, которым должна идти выплата по токену GORBUNOV
-'''
+"""
 
 import requests
+from mintersdk.minterapi import MinterAPI
+from mintersdk import MinterConvertor
+
 import settings
-from settings import wallet
+
+api = MinterAPI(settings.NODE_API_URL)
 
 
 # ------------------------------------------------------------------------------
 # Формируем словарь с теми, кому полагается выплата
 # ------------------------------------------------------------------------------
+
+# Получаем список активных валидаторов
 def get_vals_list():
-    '''
-    Получаем актуальный список публичных ключей всех валидаторов
-    '''
-    print('* Получаем список валидаторов')
-
-    # Получаем последний блок
-    net_status_url = f'{settings.NODE_API_URL}/status'
-    last_block = requests.get(net_status_url).json()['result']['latest_block_height']
-
-    # Получаем список валидаторов из последнего блока
-    get_val_url = f'{settings.NODE_API_URL}/validators?height={last_block}'
-    r_vals = requests.get(get_val_url).json()['result']
+    get_status = api.get_status()
+    block_height = get_status['result']['tm_status']['sync_info']['latest_block_height']
+    block = api.get_block(block_height)
 
     vals_list = []
-    for val in r_vals:
-        vals_list.append(val['pub_key'])
+    for validator in block['result']['validators']:
+        vals_list.append(validator['pub_key'])
 
-    print('+ Список валидаторов получен')
     return vals_list
 
 
 def get_gelegators_list_by_node(node_key):
-    '''
+    """
     Получаем список всех делегаторов в ноде
-    '''
-    URL = f'{settings.EXPLORER_API_URL}api/v1/validators/{node_key}'
-    r = requests.get(URL)
+    """
+    url = f'{settings.EXPLORER_API_URL}api/v1/validators/{node_key}'
+    r = requests.get(url)
     delegators_data = r.json()['data']['delegator_list']
 
     delegators = {}
@@ -49,10 +45,10 @@ def get_gelegators_list_by_node(node_key):
 
 
 def get_all_delegators():
-    '''
+    """
     Получаем общий словарь со всеми делегаторами монеты
     Если монета делегирована в несколько нод, то суммирует значения
-    '''
+    """
     print('* Получаем всех делегаторов монеты')
 
     vals_list = get_vals_list()  # Получили всех делегаторов
@@ -74,9 +70,9 @@ def get_all_delegators():
 
 
 def get_all_payed_delegators():
-    '''
+    """
     Словарь с теми делегаторами, которым полагается выплата
-    '''
+    """
     print('* Определяю тех, кому полагается выплата')
 
     all_delegators = get_all_delegators()
@@ -95,9 +91,9 @@ def get_all_payed_delegators():
 # Вычисляем количество делегированных монет, которые участвуют в распределении прибыли
 # ------------------------------------------------------------------------------
 def get_total_delegated_coins(payed_delegators_list):
-    '''
+    """
     Возвращает количество монет, участвующее в распределении выплаты
-    '''
+    """
     total_delegated_coins = 0
     for d in payed_delegators_list:
         total_delegated_coins += payed_delegators_list[d]
@@ -109,18 +105,18 @@ def get_total_delegated_coins(payed_delegators_list):
 # Получаем сумму выплаты
 # ------------------------------------------------------------------------------
 def get_wallet_balances(wallet_address):
-    '''
+    """
     Возвращает балансы всех монет на кошельке
-    '''
+    """
     address = requests.get(f'{settings.EXPLORER_API_ADDRESS}{wallet_address}').json()
     balances = address['data']['balances']
     return balances
 
 
 def get_bip_balance(wallet_address):
-    '''
+    """
     Возвращает баланс BIP на кошельке
-    '''
+    """
     balances = get_wallet_balances(wallet_address)
     for i in balances:
         if i['coin'] == 'BIP':
@@ -133,7 +129,7 @@ def get_bip_balance(wallet_address):
 
 # Список для мультисенда: list[dict{coin, to, value}]
 def create_multisend_list(total_delegated_coins, payed_delegators_list, to_be_payed, pay_coin_name):
-    '''
+    """
     Создаем готовый список для Mutisend транзакции
     list[dict{coin, to, value}]
 
@@ -141,7 +137,7 @@ def create_multisend_list(total_delegated_coins, payed_delegators_list, to_be_pa
     payed_delegators_list — Список кошельков, кому полагается выплата
     to_be_payed — Денег на выплату
     pay_coin_name — Монета, в которой производится выплата
-    '''
+    """
     multisend_list = []
     for Mx in payed_delegators_list:
         percent = payed_delegators_list[Mx] * 100 / total_delegated_coins
@@ -162,7 +158,6 @@ def easy_create_multisend_list(to_be_payed):
     multisend_list = create_multisend_list(total_delegated_coins, payed_delegators_list, to_be_payed, 'BIP')
 
     return multisend_list
-
 
 # # ------------------------------------------------------------------------------
 # # Выводим инфу

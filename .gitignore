@@ -131,4 +131,4 @@ dmypy.json
 .pyre/
 
 .idea
-local/
+secret/seed.txt
