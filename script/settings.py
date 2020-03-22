@@ -7,7 +7,7 @@ from mintersdk.sdk.wallet import MinterWallet
 
 PAYLOAD = 'Автоматическая выплата'
 PAYING_FOUNDERS = True
-PAYING_DELEGATORS = True
+PAYING_DELEGATORS = False
 PAYING_TAXES = False
 
 
@@ -33,10 +33,9 @@ FOUNDERS = {
             'wallet': 'Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5',
             'percent': 0.85},
         'isheldon': {
-            'wallet': 'Mx1d2111ef33c0735ae6d97a8a7948a43cca3a4bd1',
+            'wallet': 'Mx5cef09065d68561ad9f61a905c7d0aa230117733',
             'percent': 0.15}
 }
-
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -50,10 +49,8 @@ API = MinterAPI(NODE_API_URL, **TIMEOUTS)
 # ----------------------------------------------------------------------------------------------------------------------
 # Автонастройки кошелька
 # ----------------------------------------------------------------------------------------------------------------------
-with open('seed.txt', 'r') as f:
+with open('script/seed.txt', 'r') as f:
     SEED = f.read()
 PRIVATE_KEY = MinterWallet.create(mnemonic=SEED)['private_key']
 ADDRESS = MinterWallet.create(mnemonic=SEED)['address']
-
-
 

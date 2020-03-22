@@ -14,17 +14,9 @@ if coins_converted:
 
 # Всего BIP на кошельке
 pip_total = balances['BIP']
-print(f"Pip total (1) = {pip_total}")
-
-# Считаем кому сколько денег переводить
-payouts = count_money(pip_total)
 
 # Делаем список для multisend транзакции
-txs = make_multisend_txs_list(payouts)
+txs = make_multisend_txs_list(pip_total)
 
 # Отправляем выплату
 print(multisend(txs, pip_total, gas_coin='BIP'))
-
-# # Сообщаем об успешном выполнении скрипта
-# if tx_response['result']['code'] == 0:
-#     print(f'Multisend Транзакция успешно отправлена\nResponse: {tx_response["result"]}')
