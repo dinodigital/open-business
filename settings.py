@@ -7,10 +7,6 @@ from mintersdk.sdk.wallet import MinterWallet
 
 PAYLOAD = 'Автоматическая выплата'
 
-SEED = ''
-PRIVATE_KEY = MinterWallet.create(mnemonic=SEED)['private_key']
-ADDRESS = MinterWallet.create(mnemonic=SEED)['address']
-
 STOP_LIST = ['Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5']
 DELEGATED_TOKEN = 'GORBUNOV'
 MIN_COINS_DELEGATED = 1
@@ -48,3 +44,15 @@ FOUNDERS = {
 NODE_API_URL = 'http://api.minter.one'
 TIMEOUTS = {'read_timeout': 6, 'connect_timeout': 7}
 API = MinterAPI(NODE_API_URL, **TIMEOUTS)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# КОШЕЛЕК
+# ----------------------------------------------------------------------------------------------------------------------
+with open('secret/seed.txt', 'r') as f:
+    SEED = f.read()
+PRIVATE_KEY = MinterWallet.create(mnemonic=SEED)['private_key']
+ADDRESS = MinterWallet.create(mnemonic=SEED)['address']
+
+
+

@@ -4,8 +4,7 @@ from decimal import Decimal
 from mintersdk import MinterConvertor
 from mintersdk.sdk.transactions import MinterSellAllCoinTx, MinterMultiSendCoinTx
 
-from secret.private_key import private_key
-from settings import PAYING_TAXES, PAYING_DELEGATORS, ADDRESS, PAYLOAD
+from settings import PAYING_TAXES, PAYING_DELEGATORS, ADDRESS, PAYLOAD, PRIVATE_KEY
 from settings import TAXES, FOUNDERS, DELEGATORS_PERCENT
 from settings import API
 from val import get_delegators_dict
@@ -44,7 +43,7 @@ def convert_all_wallet_coins_to(symbol, balances):
         nonce = API.get_nonce(ADDRESS)
         tx = MinterSellAllCoinTx(
             coin_to_sell=coin, coin_to_buy=symbol, min_value_to_buy=0, nonce=nonce, gas_coin=coin)
-        tx.sign(private_key=private_key)
+        tx.sign(private_key=PRIVATE_KEY)
         r = API.send_transaction(tx.signed_tx)
         print(f'\n{coin} успешно сконвертирован в {symbol}.\n\nSend TX response:\n{r}')
 
@@ -78,7 +77,7 @@ def multisend(txs, pip_total, gas_coin='BIP'):
     print(to_bip(s))
 
     # Подписываем транзакцию
-    tx.sign(private_key=private_key)
+    tx.sign(private_key=PRIVATE_KEY)
 
     # Отправляем транзакцию
     return API.send_transaction(tx.signed_tx)
