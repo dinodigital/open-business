@@ -4,10 +4,10 @@ from decimal import Decimal
 from mintersdk import MinterConvertor
 from mintersdk.sdk.transactions import MinterSellAllCoinTx, MinterMultiSendCoinTx
 
-from settings import PAYING_TAXES, PAYING_DELEGATORS, ADDRESS, PAYLOAD, PRIVATE_KEY, PAYING_FOUNDERS
-from settings import TAXES, FOUNDERS, DELEGATORS_PERCENT
-from settings import API
-from val import get_delegators_dict
+from script.settings import PAYING_TAXES, PAYING_DELEGATORS, ADDRESS, PAYLOAD, PRIVATE_KEY, PAYING_FOUNDERS
+from script.settings import TAXES, FOUNDERS, DELEGATORS_PERCENT
+from script.settings import API
+from script.val import get_delegators_dict
 
 
 def only_symbol(balances, symbol):

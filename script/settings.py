@@ -50,7 +50,7 @@ API = MinterAPI(NODE_API_URL, **TIMEOUTS)
 # ----------------------------------------------------------------------------------------------------------------------
 # Автонастройки кошелька
 # ----------------------------------------------------------------------------------------------------------------------
-with open('secret/seed.txt', 'r') as f:
+with open('seed.txt', 'r') as f:
     SEED = f.read()
 PRIVATE_KEY = MinterWallet.create(mnemonic=SEED)['private_key']
 ADDRESS = MinterWallet.create(mnemonic=SEED)['address']

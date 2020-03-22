@@ -1,8 +1,6 @@
-from pprint import pprint
-
-from helpers import convert_all_wallet_coins_to, count_money, make_multisend_txs_list, to_pip, multisend
-from settings import ADDRESS
-from settings import API
+from script.helpers import convert_all_wallet_coins_to, count_money, make_multisend_txs_list, multisend
+from script.settings import ADDRESS
+from script.settings import API
 
 # Получаем балансы кошелька
 balances = API.get_balance(ADDRESS)['result']['balance']

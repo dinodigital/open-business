@@ -1,8 +1,8 @@
 """
 Скрипт который вытаскивает всех делегаторов, которым должна идти выплата по токену GORBUNOV
 """
-import settings
-from settings import API
+from script import settings
+from script.settings import API
 
 
 def get_delegators_from_validator(validator, delegators):

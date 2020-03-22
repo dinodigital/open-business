@@ -131,5 +131,6 @@ dmypy.json
 .pyre/
 
 .idea
-secret/seed.txt
+script/seed.txt
 test.py
+todo.txt
