@@ -6,9 +6,9 @@ from mintersdk.sdk.wallet import MinterWallet
 # ----------------------------------------------------------------------------------------------------------------------
 
 PAYLOAD = 'Автоматическая выплата'
-PAYING_TAXES = True
-PAYING_DELEGATORS = False
+PAYING_TAXES = False
 PAYING_FOUNDERS = True
+PAYING_DELEGATORS = True
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -20,26 +20,17 @@ TAXES = {
     'Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5': 0.1
 }
 
-# ДЕЛЕГАТОРЫ
-DELEGATORS_PERCENT = 0.1
-DELEGATED_TOKEN = 'GORBUNOV'
-MIN_COINS_DELEGATED = 1
-STOP_LIST = ['Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5']
-
 # ОСНОВАТЕЛИ
 FOUNDERS = {
     'Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5': 0.85,
     'Mx5cef09065d68561ad9f61a905c7d0aa230117733': 0.15
 }
 
-# FOUNDERS = {
-#         'gorbunov': {
-#             'wallet': 'Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5',
-#             'percent': 0.85},
-#         'isheldon': {
-#             'wallet': 'Mx5cef09065d68561ad9f61a905c7d0aa230117733',
-#             'percent': 0.15}
-# }
+# ДЕЛЕГАТОРЫ
+DELEGATORS_PERCENT = 0.1
+DELEGATED_TOKEN = 'GORBUNOV'
+MIN_COINS_DELEGATED = 1
+STOP_LIST = ['Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5']
 
 
 # ----------------------------------------------------------------------------------------------------------------------
