@@ -12,3 +12,7 @@ def seed():
 
 w = MinterWallet.create(mnemonic=seed())
 private_key = w['private_key']
+
+
+def make_private_key(seed):
+    return MinterWallet.create(mnemonic=seed)['private_key']

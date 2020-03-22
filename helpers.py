@@ -5,9 +5,9 @@ from mintersdk import MinterConvertor
 from mintersdk.sdk.transactions import MinterSellAllCoinTx, MinterMultiSendCoinTx
 
 from secret.private_key import private_key
-from settings import paying_taxes, paying_delegators, wallet, payload
-from settings import taxes, founders, delegators_percent
-from settings import api
+from settings import PAYING_TAXES, PAYING_DELEGATORS, ADDRESS, PAYLOAD
+from settings import TAXES, FOUNDERS, DELEGATORS_PERCENT
+from settings import API
 from val import get_delegators_dict
 
 
@@ -23,7 +23,7 @@ def only_symbol(balances, symbol):
 
 def wait_for_nonce(address, old_nonce):
     while True:
-        nonce = api.get_nonce(address)
+        nonce = API.get_nonce(address)
         if nonce != old_nonce:
             break
 
@@ -41,24 +41,24 @@ def convert_all_wallet_coins_to(symbol, balances):
         if coin == symbol:
             continue
 
-        nonce = api.get_nonce(wallet)
+        nonce = API.get_nonce(ADDRESS)
         tx = MinterSellAllCoinTx(
             coin_to_sell=coin, coin_to_buy=symbol, min_value_to_buy=0, nonce=nonce, gas_coin=coin)
         tx.sign(private_key=private_key)
-        r = api.send_transaction(tx.signed_tx)
+        r = API.send_transaction(tx.signed_tx)
         print(f'\n{coin} успешно сконвертирован в {symbol}.\n\nSend TX response:\n{r}')
 
         if i != len(balances):
             print('Waiting for nonce')
-            wait_for_nonce(wallet, nonce)
+            wait_for_nonce(ADDRESS, nonce)
 
 
 # Генерация и отправка Multisend транзакции
 def multisend(txs, pip_total, gas_coin='BIP'):
-    nonce = api.get_nonce(wallet)
+    nonce = API.get_nonce(ADDRESS)
 
     # Считаем комиссию
-    tx = MinterMultiSendCoinTx(txs, nonce=nonce, gas_coin=gas_coin, payload=payload)
+    tx = MinterMultiSendCoinTx(txs, nonce=nonce, gas_coin=gas_coin, payload=PAYLOAD)
     commission = tx.get_fee()
 
     s = 0
@@ -81,7 +81,7 @@ def multisend(txs, pip_total, gas_coin='BIP'):
     tx.sign(private_key=private_key)
 
     # Отправляем транзакцию
-    return api.send_transaction(tx.signed_tx)
+    return API.send_transaction(tx.signed_tx)
 
 
 # Считаем кому сколько платить
@@ -91,13 +91,13 @@ def count_money(pip_total):
     delegators_value = 0
 
     # Налоги
-    if paying_taxes:
-        taxes_value = Decimal(str(pip_total)) * Decimal(str(taxes['percent']))
+    if PAYING_TAXES:
+        taxes_value = Decimal(str(pip_total)) * Decimal(str(TAXES['percent']))
     after_taxes = pip_total - taxes_value
 
     # Делегаторам
-    if paying_delegators:
-        delegators_value = Decimal(str(after_taxes)) * Decimal(str(delegators_percent))
+    if PAYING_DELEGATORS:
+        delegators_value = Decimal(str(after_taxes)) * Decimal(str(DELEGATORS_PERCENT))
 
     # Фаундерам
     founders_value = after_taxes - delegators_value
@@ -141,15 +141,15 @@ def make_multisend_txs_list(payouts):
     taxes_data = []
     delegators_data = []
 
-    if paying_taxes:
-        taxes_data = {taxes['wallet']: payouts['taxes']}
+    if PAYING_TAXES:
+        taxes_data = {TAXES['wallet']: payouts['taxes']}
         taxes_data = make_tx_list_from_dict(taxes_data)
 
-    if paying_delegators:
+    if PAYING_DELEGATORS:
         delegators_data = get_delegators_dict(payouts['delegators'])
         delegators_data = make_tx_list_from_dict(delegators_data)
 
-    founders_data = {founder['wallet']: Decimal(str(founder['percent'])) * payouts['founders'] for founder in founders.values()}
+    founders_data = {founder['wallet']: Decimal(str(founder['percent'])) * payouts['founders'] for founder in FOUNDERS.values()}
     founders_data = make_tx_list_from_dict(founders_data)
 
     return taxes_data + founders_data + delegators_data

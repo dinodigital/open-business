@@ -1,18 +1,18 @@
 from pprint import pprint
 
 from helpers import convert_all_wallet_coins_to, count_money, make_multisend_txs_list, to_pip, multisend
-from settings import wallet
-from settings import api
+from settings import ADDRESS
+from settings import API
 
 # Получаем балансы кошелька
-balances = api.get_balance(wallet)['result']['balance']
+balances = API.get_balance(ADDRESS)['result']['balance']
 
 # Конвертируем балансы в нужный нам ТОКЕН
 coins_converted = convert_all_wallet_coins_to('BIP', balances)
 
 # Если было конвертация, запрашиваем баланс BIP по новой
 if coins_converted:
-    balances = api.get_balance(wallet)['result']['balance']
+    balances = API.get_balance(ADDRESS)['result']['balance']
 
 # Всего BIP на кошельке
 pip_total = balances['BIP']
