@@ -15,27 +15,28 @@ PAYING_TAXES = False
 # Настройки выплат
 # ----------------------------------------------------------------------------------------------------------------------
 
-# Основатели
+# НАЛОГИ
+TAXES = {
+    'wallet': 'Mx5cef09065d68561ad9f61a905c7d0aa230117733',
+    'percent': 0.1
+}
+
+# ДЕЛЕГАТОРЫ
+DELEGATORS_PERCENT = 0.1
+DELEGATED_TOKEN = 'GORBUNOV'
+MIN_COINS_DELEGATED = 1
+STOP_LIST = ['Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5']
+
+# ОСНОВАТЕЛИ
 FOUNDERS = {
         'gorbunov': {
             'wallet': 'Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5',
             'percent': 0.85},
         'isheldon': {
-            'wallet': 'Mxd315211a50c65e036c14117f6949f2ac91bb6170',
+            'wallet': 'Mx1d2111ef33c0735ae6d97a8a7948a43cca3a4bd1',
             'percent': 0.15}
 }
 
-# Делегаторы
-DELEGATORS_PERCENT = 0.1
-STOP_LIST = ['Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5']
-DELEGATED_TOKEN = 'GORBUNOV'
-MIN_COINS_DELEGATED = 1
-
-# Налоги
-TAXES = {
-    'wallet': 'Mx5cef09065d68561ad9f61a905c7d0aa230117733',
-    'percent': 0.1
-}
 
 
 # ----------------------------------------------------------------------------------------------------------------------
