@@ -10,6 +10,20 @@ from script.settings import API
 from script.val import get_delegators_dict
 
 
+def to_bip(value):
+    """
+    Короткая функция конвертации в BIP
+    """
+    return MinterConvertor.convert_value(value, 'bip')
+
+
+def to_pip(value):
+    """
+    Короткая функция конвертации в PIP
+    """
+    return MinterConvertor.convert_value(value, 'pip')
+
+
 def only_symbol(balances, symbol):
     """
     True, если на балансе кошелька только symbol
@@ -81,41 +95,6 @@ def multisend(txs, pip_total, gas_coin='BIP'):
     return API.send_transaction(tx.signed_tx)
 
 
-# Считаем кому сколько платить
-def count_money(pip_total):
-
-    taxes_value = 0
-    delegators_value = 0
-    founders_value = 0
-
-    # Налоги
-    if PAYING_TAXES:
-        taxes_value = Decimal(str(pip_total)) * Decimal(str(TAXES['percent']))
-    after_taxes = pip_total - taxes_value
-
-    # Делегаторам
-    if PAYING_DELEGATORS:
-        delegators_value = Decimal(str(after_taxes)) * Decimal(str(DELEGATORS_PERCENT))
-
-    # Фаундерам
-    if PAYING_FOUNDERS:
-        founders_value = after_taxes - delegators_value
-
-    return {
-        'taxes': taxes_value,
-        'delegators': delegators_value,
-        'founders': founders_value
-    }
-
-
-def to_bip(value):
-    return MinterConvertor.convert_value(value, 'bip')
-
-
-def to_pip(value):
-    return MinterConvertor.convert_value(value, 'pip')
-
-
 # ---------------------------------------------------------------------------------------------
 # Генерация multisend списка для оправки
 # ---------------------------------------------------------------------------------------------
@@ -136,6 +115,9 @@ def make_tx_list_from_dict(d):
 
 
 def sum_2_dicts(new_dict, main_dict):
+    """
+    Складывае 2 словаря, суммируя значения у повторяющихся ключей
+    """
     for address in new_dict:
         if address in main_dict.keys():
             main_dict[address] += Decimal(str(new_dict[address]))
@@ -144,6 +126,9 @@ def sum_2_dicts(new_dict, main_dict):
 
 
 def make_multisend_txs_list(pip_total):
+    """
+    Генерируем txs list для отправки в multisend транзакцию
+    """
 
     if not PAYING_FOUNDERS and not PAYING_DELEGATORS and not PAYING_TAXES:
         return
