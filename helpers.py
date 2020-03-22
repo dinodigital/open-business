@@ -4,7 +4,7 @@ from decimal import Decimal
 from mintersdk import MinterConvertor
 from mintersdk.sdk.transactions import MinterSellAllCoinTx, MinterMultiSendCoinTx
 
-from settings import PAYING_TAXES, PAYING_DELEGATORS, ADDRESS, PAYLOAD, PRIVATE_KEY
+from settings import PAYING_TAXES, PAYING_DELEGATORS, ADDRESS, PAYLOAD, PRIVATE_KEY, PAYING_FOUNDERS
 from settings import TAXES, FOUNDERS, DELEGATORS_PERCENT
 from settings import API
 from val import get_delegators_dict
@@ -60,21 +60,11 @@ def multisend(txs, pip_total, gas_coin='BIP'):
     tx = MinterMultiSendCoinTx(txs, nonce=nonce, gas_coin=gas_coin, payload=PAYLOAD)
     commission = tx.get_fee()
 
-    s = 0
-    for i in txs:
-        s += i['value']
-    print(s)
-
     # Пересчитываем выплаты
     new_pip_total = pip_total - commission
 
     for i in txs:
         i['value'] = to_bip(Decimal(str(new_pip_total)) * Decimal(str(i['value'])) / Decimal(str(pip_total)))
-
-    s = 0
-    for i in txs:
-        s += i['value']
-    print(to_bip(s))
 
     # Подписываем транзакцию
     tx.sign(private_key=PRIVATE_KEY)
@@ -88,6 +78,7 @@ def count_money(pip_total):
 
     taxes_value = 0
     delegators_value = 0
+    founders_value = 0
 
     # Налоги
     if PAYING_TAXES:
@@ -99,7 +90,8 @@ def count_money(pip_total):
         delegators_value = Decimal(str(after_taxes)) * Decimal(str(DELEGATORS_PERCENT))
 
     # Фаундерам
-    founders_value = after_taxes - delegators_value
+    if PAYING_FOUNDERS:
+        founders_value = after_taxes - delegators_value
 
     return {
         'taxes': taxes_value,
@@ -139,6 +131,7 @@ def make_multisend_txs_list(payouts):
 
     taxes_data = []
     delegators_data = []
+    founders_data = []
 
     if PAYING_TAXES:
         taxes_data = {TAXES['wallet']: payouts['taxes']}
@@ -148,7 +141,8 @@ def make_multisend_txs_list(payouts):
         delegators_data = get_delegators_dict(payouts['delegators'])
         delegators_data = make_tx_list_from_dict(delegators_data)
 
-    founders_data = {founder['wallet']: Decimal(str(founder['percent'])) * payouts['founders'] for founder in FOUNDERS.values()}
-    founders_data = make_tx_list_from_dict(founders_data)
+    if PAYING_FOUNDERS:
+        founders_data = {founder['wallet']: Decimal(str(founder['percent'])) * payouts['founders'] for founder in FOUNDERS.values()}
+        founders_data = make_tx_list_from_dict(founders_data)
 
     return taxes_data + founders_data + delegators_data
