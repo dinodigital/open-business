@@ -135,30 +135,40 @@ def make_tx_list_from_dict(d):
     return out_list
 
 
+def sum_2_dicts(new_dict, main_dict):
+    for address in new_dict:
+        if address in main_dict.keys():
+            main_dict[address] += Decimal(str(new_dict[address]))
+        else:
+            main_dict[address] = Decimal(str(new_dict[address]))
+
+
 def make_multisend_txs_list(pip_total):
 
-    taxes_data = []
+    if not PAYING_FOUNDERS and not PAYING_DELEGATORS and not PAYING_TAXES:
+        return
+
+    total_dict = {}
+
     taxes_value = 0
-    delegators_data = []
     delegators_value = 0
-    founders_data = []
     founders_value = 0
 
     if PAYING_TAXES:
-        taxes_value = Decimal(str(pip_total)) * Decimal(str(TAXES['percent']))
-        taxes_data = {TAXES['wallet']: taxes_value}
-        taxes_data = make_tx_list_from_dict(taxes_data)
+        taxes_value = pip_total * Decimal(str(sum(TAXES.values())))
+        taxes_data = {address: Decimal(str(percent)) * pip_total for address, percent in TAXES.items()}
+        sum_2_dicts(taxes_data, total_dict)
 
     after_taxes = pip_total - taxes_value
 
     if PAYING_DELEGATORS:
-        delegators_value = Decimal(str(after_taxes)) * Decimal(str(DELEGATORS_PERCENT))
+        delegators_value = after_taxes * Decimal(str(DELEGATORS_PERCENT))
         delegators_data = get_delegators_dict(delegators_value)
-        delegators_data = make_tx_list_from_dict(delegators_data)
+        sum_2_dicts(delegators_data, total_dict)
 
     if PAYING_FOUNDERS:
         founders_value = after_taxes - delegators_value
-        founders_data = {founder['wallet']: Decimal(str(founder['percent'])) * founders_value for founder in FOUNDERS.values()}
-        founders_data = make_tx_list_from_dict(founders_data)
+        founders_data = {address: Decimal(str(percent)) * founders_value for address, percent in FOUNDERS.items()}
+        sum_2_dicts(founders_data, total_dict)
 
-    return taxes_data + founders_data + delegators_data
+    return make_tx_list_from_dict(total_dict)

@@ -10,7 +10,7 @@
 ## Как пользоваться скриптом
 1. Создать в папке `script/` файл `seed.txt`, в котором 12 слов seed фразы кошелька
 2. Настроить `script/settings.py`
-3. Запустить `script/main.py`
+3. Запустить `script/main.py` из папки `Open business`
 
 
 ## settings.py
