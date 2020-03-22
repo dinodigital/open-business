@@ -1,44 +1,24 @@
 import time
+from decimal import Decimal
 
-from mintersdk.minterapi import MinterAPI
+from mintersdk import MinterConvertor
 from mintersdk.sdk.transactions import MinterSellAllCoinTx, MinterMultiSendCoinTx
 
 from secret.private_key import private_key
-from settings import NODE_API_URL, payouts, paying_taxes, paying_delegators, wallet, payload
-from val import easy_create_multisend_list
+from settings import paying_taxes, paying_delegators, wallet, payload
+from settings import taxes, founders, delegators_percent
+from settings import api
+from val import get_delegators_dict
 
-api = MinterAPI(NODE_API_URL)
 
+def only_symbol(balances, symbol):
+    """True, Если на кошельке только токен symbol"""
 
-def only_symbol(human_balances, symbol):
-    """True, Если на кошельке только BIP"""
-
-    if len(human_balances) > 1:
+    if len(balances) > 1:
         return False
     else:
-        if symbol in human_balances:
+        if symbol in balances:
             return True
-
-
-def human_balances(wallet):
-    """Возвращает нормальные балансы, а не строки с кучей нулей"""
-    wallet_balance_data = api.get_balance(wallet)
-    balances = wallet_balance_data['result']['balance']
-
-    human_balances = {}
-
-    for coin in balances:
-        human_balances[coin] = int(balances[coin])/1000000000000000000
-
-    return human_balances
-
-
-def append_tx(txs, to, value):
-    txs.append({
-        'coin': 'BIP',
-        'to': to,
-        'value': value
-    })
 
 
 def wait_for_nonce(address, old_nonce):
@@ -50,99 +30,126 @@ def wait_for_nonce(address, old_nonce):
         time.sleep(1)
 
 
-def convert_all_wallet_coins_to(symbol, wallet, private_key, balances):
-    """
-    Конвертируем все монеты в кошельке в монету symbol
-    :param symbol: COINNAME (str)
-    :param wallet:
-    :param private_key:
-    :param balances:
-    :return:
-    """
-    if not only_symbol(balances, symbol):
+def convert_all_wallet_coins_to(symbol, balances):
+    if only_symbol(balances, symbol):
+        return
 
-        if symbol in balances.keys():
-            del (balances[symbol])
+    if symbol in balances.keys():
+        del (balances[symbol])
 
-        i = len(balances)
-        for coin in balances:
+    for i, coin in enumerate(balances, 1):
+        if coin == symbol:
+            continue
 
-            if coin != symbol:
-                nonce = api.get_nonce(wallet)
-                tx = MinterSellAllCoinTx(coin_to_sell=coin, coin_to_buy=symbol, min_value_to_buy=0, nonce=nonce,
-                                         gas_coin=coin)
-                tx.sign(private_key=private_key)
-                r = api.send_transaction(tx.signed_tx)
-                print(f'\n{coin} успешно сконвертирован в {symbol}.\n\nSend TX response:\n{r}')
+        nonce = api.get_nonce(wallet)
+        tx = MinterSellAllCoinTx(
+            coin_to_sell=coin, coin_to_buy=symbol, min_value_to_buy=0, nonce=nonce, gas_coin=coin)
+        tx.sign(private_key=private_key)
+        r = api.send_transaction(tx.signed_tx)
+        print(f'\n{coin} успешно сконвертирован в {symbol}.\n\nSend TX response:\n{r}')
 
-                i -= 1
-                if i > 0:
-                    print('Waiting for nonce')
-                    wait_for_nonce(wallet, nonce)
-
-
-def write_taxes_and_return_remains(bip_total, payouts):
-    """Вносим значение налогов в словарь и возвращаем остаток для дальнейшего распределения"""
-    payouts['taxes']['value'] = bip_total * payouts['taxes']['percent']
-    return bip_total - payouts['taxes']['value']
-
-
-def write_founders_values(to_be_payed, payouts):
-    """Вносим значения выплат для каждого основателя"""
-    for _, f_dict in payouts['founders'].items():
-        f_dict['value'] = to_be_payed * f_dict['percent']
+        if i != len(balances):
+            print('Waiting for nonce')
+            wait_for_nonce(wallet, nonce)
 
 
 # Генерация и отправка Multisend транзакции
-def multisend(txs, bip_total, gas_coin='BIP'):
+def multisend(txs, pip_total, gas_coin='BIP'):
     nonce = api.get_nonce(wallet)
 
     # Считаем комиссию
     tx = MinterMultiSendCoinTx(txs, nonce=nonce, gas_coin=gas_coin, payload=payload)
-    commission = tx.get_fee()/1000000000000000000
+    commission = tx.get_fee()
 
-    print(commission)
+    s = 0
+    for i in txs:
+        s += i['value']
+    print(s)
 
     # Пересчитываем выплаты
-    bip_total = bip_total - commission
-    payouts = count_money(bip_total)
-    txs = make_txs(payouts)
-    tx.txs = txs
+    new_pip_total = pip_total - commission
 
+    for i in txs:
+        i['value'] = to_bip(Decimal(str(new_pip_total)) * Decimal(str(i['value'])) / Decimal(str(pip_total)))
+
+    s = 0
+    for i in txs:
+        s += i['value']
+    print(to_bip(s))
+
+    # Подписываем транзакцию
     tx.sign(private_key=private_key)
-    r = api.send_transaction(tx.signed_tx)
 
-    print(f'Multisend успешно отправлен.\n\nSend TX response:\n{r}')
-    return tx
+    # Отправляем транзакцию
+    return api.send_transaction(tx.signed_tx)
 
 
 # Считаем кому сколько платить
-def count_money(bip_total):
-    after_taxes = write_taxes_and_return_remains(bip_total, payouts)  # Налоги
-    payouts['delegators']['to_be_payed'] = after_taxes * payouts['delegators']['percent']  # Делегаторам
-    founders_to_be_payed = after_taxes - payouts['delegators']['to_be_payed']  # Основателям
-    write_founders_values(founders_to_be_payed, payouts)
-    return payouts
+def count_money(pip_total):
+
+    taxes_value = 0
+    delegators_value = 0
+
+    # Налоги
+    if paying_taxes:
+        taxes_value = Decimal(str(pip_total)) * Decimal(str(taxes['percent']))
+    after_taxes = pip_total - taxes_value
+
+    # Делегаторам
+    if paying_delegators:
+        delegators_value = Decimal(str(after_taxes)) * Decimal(str(delegators_percent))
+
+    # Фаундерам
+    founders_value = after_taxes - delegators_value
+
+    return {
+        'taxes': taxes_value,
+        'delegators': delegators_value,
+        'founders': founders_value
+    }
+
+
+def to_bip(value):
+    return MinterConvertor.convert_value(value, 'bip')
+
+
+def to_pip(value):
+    return MinterConvertor.convert_value(value, 'pip')
 
 
 # ---------------------------------------------------------------------------------------------
 # Генерация multisend списка для оправки
 # ---------------------------------------------------------------------------------------------
+def make_tx_list_from_dict(d):
+    """Делает из словаря список из словарей, где каждое ключ-значение начального словаря это отдельный словарь"""
 
-def make_txs(payouts):
-    txs = []
+    out_list = []
 
-    # Налоги
+    for i in d:
+        out_list.append(
+            {
+                'coin': 'BIP',
+                'to': i,
+                'value': d[i]
+            })
+
+    return out_list
+
+
+def make_multisend_txs_list(payouts):
+
+    taxes_data = []
+    delegators_data = []
+
     if paying_taxes:
-        append_tx(txs, payouts['taxes']['wallet'], payouts['taxes']['value'])
+        taxes_data = {taxes['wallet']: payouts['taxes']}
+        taxes_data = make_tx_list_from_dict(taxes_data)
 
-    # Основатели
-    for _, f_dict in payouts['founders'].items():
-        append_tx(txs, f_dict['wallet'], f_dict['value'])
-
-    # Делегаторы
     if paying_delegators:
-        delegators_multisend_list = easy_create_multisend_list(payouts['delegators']['to_be_payed'])
-        txs = txs + delegators_multisend_list  # Формируем окончательный список
+        delegators_data = get_delegators_dict(payouts['delegators'])
+        delegators_data = make_tx_list_from_dict(delegators_data)
 
-    return txs
+    founders_data = {founder['wallet']: Decimal(str(founder['percent'])) * payouts['founders'] for founder in founders.values()}
+    founders_data = make_tx_list_from_dict(founders_data)
+
+    return taxes_data + founders_data + delegators_data

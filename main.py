@@ -1,34 +1,32 @@
-from helpers import human_balances, append_tx, convert_all_wallet_coins_to, \
-    write_taxes_and_return_remains, write_founders_values, multisend, count_money, make_txs
+from pprint import pprint
 
-from secret.private_key import private_key
-from settings import wallet, min_bip, paying_taxes, paying_delegators
-from val import easy_create_multisend_list
-
-# ---------------------------------------------------------------------------------------------
-# Считаем кому сколько переводить
-# ---------------------------------------------------------------------------------------------
+from helpers import convert_all_wallet_coins_to, count_money, make_multisend_txs_list, to_pip, multisend
+from settings import wallet
+from settings import api
 
 # Получаем балансы кошелька
-balances = human_balances(wallet)
+balances = api.get_balance(wallet)['result']['balance']
 
-# Конвертируем кастомки в BIP
-convert_all_wallet_coins_to('BIP', wallet, private_key, balances)
+# Конвертируем балансы в нужный нам ТОКЕН
+coins_converted = convert_all_wallet_coins_to('BIP', balances)
+
+# Если было конвертация, запрашиваем баланс BIP по новой
+if coins_converted:
+    balances = api.get_balance(wallet)['result']['balance']
 
 # Всего BIP на кошельке
-bip_total = balances['BIP']
+pip_total = balances['BIP']
+print(f"Pip total (1) = {pip_total}")
 
 # Считаем кому сколько денег переводить
-payouts = count_money(bip_total)
+payouts = count_money(pip_total)
 
-# Делаем miltisend список
-txs = make_txs(payouts)
+# Делаем список для multisend транзакции
+txs = make_multisend_txs_list(payouts)
 
-
-# ---------------------------------------------------------------------------------------------
 # Отправляем выплату
-# ---------------------------------------------------------------------------------------------
+print(multisend(txs, pip_total, gas_coin='BIP'))
 
-multisend(txs, bip_total, gas_coin='BIP')
-
-
+# # Сообщаем об успешном выполнении скрипта
+# if tx_response['result']['code'] == 0:
+#     print(f'Multisend Транзакция успешно отправлена\nResponse: {tx_response["result"]}')
