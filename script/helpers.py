@@ -175,23 +175,21 @@ def multisend(txs, pip_total, gas_coin='BIP'):
     return nonce
 
 
-def split_txs(txs):
+def split_txs(txs, length=100):
     """
-    Делает список из списков по 100 транзакций
+    Делает несколько multisend списков по length транзакций на список
     """
+    if length > 100:
+        print('Ошибка: Максимум 100 адресов на 1 multisend')
+        return
+
     txs_list = []
 
-    x = 0
-    temp_list = []
-
-    for num, tx in enumerate(txs, 1):
-        temp_list.append(tx)
-        x += 1
-
-        if x == 60 or num == len(txs):
-            txs_list.append(temp_list)
-            temp_list = []
-            x = 0
+    while len(txs) > length:
+        txs_list.append(txs[:length])
+        txs = txs[length:]
+    else:
+        txs_list.append(txs)
 
     return txs_list
 
@@ -208,24 +206,25 @@ def calc_pip_total(txs):
     return pip_total
 
 
-# test = []
-# for i in range(102):
-#     test.append({'coin': 'BIP', 'to': MinterWallet.create()['address'], 'value': Decimal(str(to_pip(0.001)))})
-
-
 def smart_multisend(all_txs, gas_coin='BIP'):
     """
     Генерирует multisend на каждые 100 адресов в all_txs
     """
 
-    # Проверяем не превышают ли комиссии сумму выплат
-    commissions, pip_total = calc_commission(all_txs), calc_pip_total(all_txs)
-    if commissions > pip_total:
-        print('Ошибка: Комиссии превышают сумму выплаты')
-        return
-
     # Делаем из общего списка транзакций списки по 100 адресов
     txs_list = split_txs(all_txs)
+
+    # Проверяем не превышают ли комиссии сумму выплат
+    commissions = sum(calc_commission(txs) for txs in txs_list)
+    pip_total = calc_pip_total(all_txs)
+    if commissions > pip_total:
+        print(f'Ошибка: Комиссии ({to_bip(commissions)}) превышают сумму выплат ({to_bip(pip_total)})')
+        return
+
+    # Выводим в консоль информацию о выплате
+    print(f'Всего к выплате: {to_bip(pip_total)}\n'
+          f'Комиссия: {to_bip(commissions)}\n'
+          f'Будет выплачено: {to_bip(pip_total - commissions)}')
 
     # Делаем multisend
     for txs in txs_list:
@@ -236,5 +235,12 @@ def smart_multisend(all_txs, gas_coin='BIP'):
 
     return
 
-
+# # Тест smart_multisend
+# # --------------------------------------------------------------------------------------------------------------
+# test = []
+# for i in range(110):
+#     test.append({'coin': 'BIP', 'to': MinterWallet.create()['address'], 'value': Decimal(str(to_pip(0.02)))})
+#     # test.append({'coin': 'BIP', 'to': f'Mx...{i}', 'value': Decimal(str(to_pip(0.007)))})
+#     # print(i)
+#
 # smart_multisend(test, gas_coin='BIP')
