@@ -14,6 +14,14 @@ wallet = Wallet(seed='income junk erase gesture announce brisk catch wolf helmet
 
 ### Методы
 #### Перевести монеты на 1 или несколько кошельков
+```python
+wallet.pay(payouts, coin="BIP", payload='', include_commission=True)
+
+# payouts (dict) - словарь вида `{'Mx...1': 100, 'Mx...2': 150, ...}` с указанием кому сколько переводить. Может быть любой длинны (от 1 до тысяч значений)
+# coin (str) - токен, в котором будет производится выплата
+# payload (str) - комментарий к транзакции
+# include_commission (bool) - Если True, то комиссия за транзакцию включается в общую сумму выплаты. При этом суммы каждого получателя будут пересчитаны с учетом комиссии.
+```
 `wallet.pay(payouts, coin="BIP", payload='', include_commission=True)`
 * `payouts` (dict) - словарь вида `{'Mx...1': 100, 'Mx...2': 150, ...}` с указанием кому сколько переводить. Может быть любой длинны (от 1 до тысяч значений)
 * `coin` (str) - токен, в котором будет производится выплата
