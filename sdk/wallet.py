@@ -112,11 +112,11 @@ class Wallet:
         """
         return self.multisend(payouts, coin=coin, payload=payload, include_commission=include_commission)
 
-    def pay_token_delegators(self, delegated_token, value, by_node='', min_delegated=0, stop_list=None, coin='BIP', payload='', include_commission=True):
+    def pay_token_delegators(self, delegated_token, to_be_payed, by_node='', min_delegated=0, stop_list=None, coin='BIP', payload='', include_commission=True):
         """
         Выплата делегаторам конкретного токена
         :param delegated_token: str > 'SYMBOL' - делгаторы этого токена получают выплату
-        :param value: int/float - сумма, которая будет выплачена всем делегаторам
+        :param to_be_payed: int/float - сумма, которая будет выплачена всем делегаторам
         :param by_node: str > 'Mp....' - публичный адрес валидатора . Если заполнить, то выплата будет только делегатором конкретной ноды
         :param min_delegated: int/float - столько минимум должно быть делегировано, чтобы получить выплату
         :param stop_list: list > ['Mx...1', 'Mx...2', ...] кошельки, не участвующие в выплате
@@ -126,7 +126,7 @@ class Wallet:
         :return:
         """
         delegators = Delegators(delegated_token)
-        payouts = delegators.get_payouts(value, by_node=by_node, min_delegated=min_delegated, stop_list=stop_list)
+        payouts = delegators.get_payouts(to_be_payed, by_node=by_node, min_delegated=min_delegated, stop_list=stop_list)
         return self.multisend(payouts, coin=coin, payload=payload, include_commission=include_commission)
 
     def pay_by_shares(self, shares, to_be_payed, coin="BIP", payload='', include_commission=True):

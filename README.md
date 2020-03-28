@@ -13,7 +13,7 @@ wallet = Wallet(seed='income junk erase gesture announce brisk catch wolf helmet
 ```
 
 ## Использование
-#### Перевести монеты на 1 или несколько кошельков
+#### Перевод на 1 или несколько кошельков
 ```python
 wallet.pay(payouts, coin="BIP", payload='', include_commission=True)
 
@@ -23,7 +23,7 @@ wallet.pay(payouts, coin="BIP", payload='', include_commission=True)
 # include_commission (bool) - Если True, то комиссия за транзакцию включается в общую сумму выплаты. При этом суммы каждого получателя будут пересчитаны с учетом комиссии.
 ```
 
-#### Перевести сумму в соответствии с долями
+#### Перевод суммы в соответствии с долями
 ```python
 wallet.pay_by_shares(shares, to_be_payed, coin="BIP", payload='', include_commission=True)
 
@@ -34,8 +34,47 @@ wallet.pay_by_shares(shares, to_be_payed, coin="BIP", payload='', include_commis
 # include_commission (bool) - Если True, то комиссия за транзакцию включается в общую сумму выплаты. При этом суммы каждого получателя будут пересчитаны с учетом комиссии.
 ```
 
-- `wallet.pay_token_delegators()`
-- `wallet.convert()`
-- `wallet.convert_all_coins_to()`
-- `wallet.get_balance()`
-- `wallet.get_bip_balance()` 
+#### Перевод суммы делегаторам конкретного токена
+```python
+wallet.pay_token_delegators(delegated_token, to_be_payed, by_node='', min_delegated=0, stop_list=None, coin='BIP', payload='', include_commission=True)
+
+# delegated_token (str 'SYMBOL') - делегаторы данного токена получат выплату
+# to_be_payed (int/float) - обшая сумма выплаты
+# by_node (str 'Mp...') - если заполнить, то выплату получат делегаторы токена (delegated_token) в конкретной ноде
+# min_delegated (int/float) - столько должно быть суммарно делегировано у кошелька, чтобы полчить выплату. Если равно 0, то выплату получат все делегаторы токена.
+# stop_list (list ['Mx...1', ...] - эти кошельки не получат выплату по токену
+# coin (str) - токен, в котором будет производится выплата
+# payload (str) - комментарий к транзакции
+# include_commission (bool) - Если True, то комиссия за транзакцию включается в общую сумму выплаты. При этом суммы каждого получателя будут пересчитаны с учетом комиссии.
+```
+
+#### Конвертировать одну монету в другую
+```python
+wallet.convert(value, from_symbol, to_symbol)
+
+# value (int/float) - столько монет (from_symbol) будет сконвертировано
+# from_symbol (str 'SYMBOL') - монета, которую продаем
+# to_symbol (str 'SYMBOL') - монета, которую покупаем
+```
+
+#### Конвертировать весь баланс кошелька в определенную монету
+```python
+wallet.convert_all_coins_to(symbol)
+
+# symbol (str 'SYMBOL') - монета, в которую конвертируем все остальные
+```
+
+#### Получить балансы всех монет на кошельке
+```python
+wallet.get_balance()
+
+# Возвращает json с балансами
+# Получить баланс конкретной монеты > wallet.get_balance()['SYMBOL']
+```
+
+#### Получить баланс BIP на кошельке
+```python
+wallet.get_bip_balance()
+
+# Возвращает количество BIP на кошельке
+```
