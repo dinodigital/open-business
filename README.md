@@ -1,19 +1,19 @@
 ## Open Business SDK
 Автоматизируйте переводы, распределение доходов, выплаты делегаторам и конвертацию токенов.
 
-### Установка
+## Установка
 1. Склонируйте репозиторий `git clone https://github.com/dinodigital/Open_business.git` в папку проекта
 2. (необязательно) Укажите url api-ноды в `sdk/settings.py` и headers, если нода приватная
 
-### Использование
+## Использование
 ```python
 from sdk.wallet import Wallet
 
 wallet = Wallet(seed='income junk erase gesture announce brisk catch wolf helmet custom elder rug')  # Пример seed фразы
 ```
 
-#### Методы
-###### Перевести монеты на 1 или несколько кошельков
+### Методы
+#### Перевести монеты на 1 или несколько кошельков
 `wallet.pay(payouts, coin="BIP", payload='', include_commission=True)`
 * `payouts` (dict) - словарь вида `{'Mx...1': 100, 'Mx...2': 150, ...}` с указанием кому сколько переводить. Может быть любой длинны (от 1 до тысяч значений)
 * `coin` (str) - токен, в котором будет производится выплата
