@@ -1,5 +1,4 @@
 from mintersdk.minterapi import MinterAPI
-from settings_secret import NODE_HEADERS
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Настройки API
@@ -15,4 +14,4 @@ TIMEOUTS = {
 
 HEADERS = {}
 
-API = MinterAPI(API_NODE_URL, headers=NODE_HEADERS, **TIMEOUTS)
+API = MinterAPI(API_NODE_URL, headers=HEADERS, **TIMEOUTS)
