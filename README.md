@@ -9,7 +9,7 @@
 ```python
 from sdk.wallet import Wallet
 
-wallet = Wallet(seed='income junk erase gesture announce brisk catch wolf helmet custom elder rug')  # Пример seed фразы
+wallet = Wallet(seed='Ваша seed фраза из 12 слов')
 ```
 
 ## Использование
@@ -77,4 +77,24 @@ wallet.get_balance()
 wallet.get_bip_balance()
 
 # Возвращает количество BIP на кошельке
+```
+
+## Примеры выплат
+```python
+from sdk.wallet import Wallet
+
+# Инициализируем кошелек
+my_wallet = Wallet(seed="income junk erase gesture announce brisk catch wolf helmet custom elder rug")
+
+# Кому сколько платим
+payouts = {
+    'Mx5cef09065d68561ad9f61a905c7d0aa230117733': 100,  # сюда 100 монет
+    'Mx0f4e09ae5e998cf0322f1f13b36284274b5a3db5': 150  # сюда 150 монет
+}
+
+# Совершаем выплату на 2 кошелька из payouts. По умолчанию выплата идет в BIP и включает комиссию.
+my_wallet.pay(payouts)
+
+# Переводим все BIP, которые есть на кошельке
+my_wallet.pay({'Mx20e826a362eb061306ccb0e23d7ab3f18503d344': my_wallet.get_bip_balance()})
 ```
