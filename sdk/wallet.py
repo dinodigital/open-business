@@ -1,20 +1,28 @@
 import time
 from decimal import Decimal
 
+from mintersdk.minterapi import MinterAPI
 from mintersdk.sdk.transactions import MinterSellCoinTx, MinterSellAllCoinTx, MinterSendCoinTx, MinterMultiSendCoinTx
 from mintersdk.sdk.wallet import MinterWallet
 from mintersdk.shortcuts import to_bip
 
-from sdk.delegators import Delegators
-from sdk.settings import API
+default_node = {
+    'url': 'https://mnt.funfasy.dev/',
+    'timeouts': {'read_timeout': 6, 'connect_timeout': 7},
+    'headers': {}
+}
+
+default_API = MinterAPI(default_node['url'], headers=default_node['headers'], **default_node['timeouts'])
 
 
 class Wallet:
 
-    def __init__(self, seed):
+    def __init__(self, seed, pk=None, node=None):
         self.seed = seed
-        self.private_key = MinterWallet.create(mnemonic=seed)['private_key']
+        self.private_key = pk or MinterWallet.create(mnemonic=seed)['private_key']
         self.address = MinterWallet.create(mnemonic=seed)['address']
+        self.node = node
+        self.API = MinterAPI(node['url'], headers=node['headers'], **node['timeouts']) if node else default_API
 
     # ------------------------------------------
     # ОСНОВНЫЕ ФУНКЦИИ
@@ -24,13 +32,13 @@ class Wallet:
         """
         Получаем баланс кошелька
         """
-        return API.get_balance(self.address, pip2bip=in_bip)['result']['balance']
+        return self.API.get_balance(self.address, pip2bip=in_bip)['result']['balance']
 
     def get_bip_balance(self):
         """
         Получаем баланс кошелька в BIP
         """
-        return API.get_balance(self.address, pip2bip=True)['result']['balance']
+        return self.API.get_balance(self.address, pip2bip=True)['result']['balance']
 
     def convert(self, value, from_symbol, to_symbol):
         """
@@ -52,7 +60,7 @@ class Wallet:
             return
 
         # Генерируем транзакцию
-        nonce = API.get_nonce(self.address)
+        nonce = self.API.get_nonce(self.address)
         tx = MinterSellCoinTx(
             coin_to_sell=from_symbol,
             value_to_sell=value,
@@ -72,7 +80,7 @@ class Wallet:
 
         # Отправляем транзакицю
         tx.sign(private_key=self.private_key)
-        return API.send_transaction(tx.signed_tx)
+        return self.API.send_transaction(tx.signed_tx)
 
     def convert_all_coins_to(self, symbol):
         """
@@ -89,12 +97,12 @@ class Wallet:
             if coin == symbol:
                 continue
 
-            nonce = API.get_nonce(self.address)
+            nonce = self.API.get_nonce(self.address)
             tx = MinterSellAllCoinTx(
                 coin_to_sell=coin, coin_to_buy=symbol, min_value_to_buy=0, nonce=nonce, gas_coin=coin
             )
             tx.sign(private_key=self.private_key)
-            API.send_transaction(tx.signed_tx)
+            self.API.send_transaction(tx.signed_tx)
 
             print(f'{coin} сконвертирован в {symbol}')
 
@@ -112,7 +120,8 @@ class Wallet:
         """
         return self.multisend(payouts, coin=coin, payload=payload, include_commission=include_commission)
 
-    def pay_token_delegators(self, delegated_token, to_be_payed, by_node='', min_delegated=0, stop_list=None, coin='BIP', payload='', include_commission=True):
+    def pay_token_delegators(self, delegated_token, to_be_payed, by_node='', min_delegated=0, stop_list=None,
+                             coin='BIP', payload='', include_commission=True):
         """
         Выплата делегаторам конкретного токена
         :param delegated_token: str > 'SYMBOL' - делгаторы этого токена получают выплату
@@ -125,7 +134,7 @@ class Wallet:
         :param include_commission: bool - Если True, то комиссия за перевод включается в сумму выплаты и выплаты будут пересчитаны с учетом комиссии
         :return:
         """
-        delegators = Delegators(delegated_token)
+        delegators = Delegators(delegated_token, node=self.node)
         payouts = delegators.get_payouts(to_be_payed, by_node=by_node, min_delegated=min_delegated, stop_list=stop_list)
         return self.multisend(payouts, coin=coin, payload=payload, include_commission=include_commission)
 
@@ -145,7 +154,7 @@ class Wallet:
     def send(self, to, value, coin="BIP", payload='', include_commission=True):
         value = Decimal(str(value))
 
-        nonce = API.get_nonce(self.address)
+        nonce = self.API.get_nonce(self.address)
         tx = MinterSendCoinTx(coin=coin, to=to, value=value, nonce=nonce, gas_coin=coin, payload=payload)
 
         if include_commission:
@@ -153,7 +162,7 @@ class Wallet:
                 commission = to_bip(tx.get_fee())
             else:
                 tx.sign(self.private_key)
-                commission = API.estimate_tx_commission(tx.signed_tx, pip2bip=True)['result']['commission']
+                commission = self.API.estimate_tx_commission(tx.signed_tx, pip2bip=True)['result']['commission']
 
             tx.value = value - commission
 
@@ -166,7 +175,7 @@ class Wallet:
             return
 
         tx.sign(private_key=self.private_key)
-        return API.send_transaction(tx.signed_tx)
+        return self.API.send_transaction(tx.signed_tx)
 
     def multisend(self, to_dict, coin="BIP", payload='', include_commission=True):
         """
@@ -204,7 +213,9 @@ class Wallet:
             total_commission = to_bip(sum(tx.get_fee() for tx in tx_templates))
         else:
             [tx.sign(self.private_key) for tx in tx_templates]
-            total_commission = sum(API.estimate_tx_commission(tx.signed_tx, pip2bip=True)['result']['commission'] for tx in tx_templates)
+            total_commission = sum(
+                self.API.estimate_tx_commission(tx.signed_tx, pip2bip=True)['result']['commission'] for tx in
+                tx_templates)
 
         # Если перевод с учетом комиссии, то пересчитываем выплаты
         if include_commission:
@@ -226,9 +237,9 @@ class Wallet:
         r_out = []
         # Делаем multisend
         for tx in tx_templates:
-            tx.nonce = API.get_nonce(self.address)
+            tx.nonce = self.API.get_nonce(self.address)
             tx.sign(self.private_key)
-            r = API.send_transaction(tx.signed_tx)
+            r = self.API.send_transaction(tx.signed_tx)
             r_out.append(r)
             if len(tx_templates) > 1:
                 self._wait_for_nonce(tx.nonce)
@@ -271,7 +282,7 @@ class Wallet:
         Прерывается, если новый nonce != старый nonce
         """
         while True:
-            nonce = API.get_nonce(self.address)
+            nonce = self.API.get_nonce(self.address)
             if nonce != old_nonce:
                 break
 
@@ -286,3 +297,71 @@ class Wallet:
             return False
         elif symbol in balances:
             return True
+
+
+class Delegators:
+
+    def __init__(self, token=None, min_delegated=0, stop_list=None, node=None):
+        self.token = token
+        self.min_delegated = min_delegated
+        self.stop_list = stop_list or []
+        self.API = MinterAPI(node['url'], headers=node['headers'], **node['timeouts']) if node else default_API
+
+    def get_delegations(self, by_node='', min_delegated=0, stop_list=None):
+        """
+        Получаем всех делегаторов монеты self.token
+        :param stop_list: list ['Mx...1', 'Mx...2', ...]
+        :param by_node: str 'Mp....'
+        :param min_delegated: float/int Минимальное количество делегированных токенов
+        :return: dict {address: delegated_tokens, ...}
+        """
+
+        stop_list = stop_list or [] or self.stop_list
+        min_delegated = min_delegated or self.min_delegated
+
+        # Получаем стейки
+        stakes = []
+
+        # По отдельной ноде
+        if by_node:
+            stakes = self.API.get_candidate(by_node)['result']['stakes']
+        # По всем нодам
+        else:
+            validators = self.API.get_validators(limit=256)['result']
+            pub_keys = [v['pub_key'] for v in validators]
+            print(f"Получаем стейки валидаторов")
+            for i, pub_key in enumerate(pub_keys, 1):
+                print(f"{i} / {len(validators)}")
+                stakes += self.API.get_candidate(pub_key)['result']['stakes']
+
+        # Получаем словарь со всеми делегаторами и суммарное количество заделегированных токенов
+        delegators = {}
+        for stake in stakes:
+            if (stake['coin'] == self.token or self.token is None) and stake['owner'] not in stop_list and stake['value'] >= min_delegated:
+                if stake['owner'] not in delegators.keys():
+                    delegators[stake['owner']] = to_bip(stake['value'])
+                else:
+                    delegators[stake['owner']] += to_bip(stake['value'])
+
+        return delegators
+
+    def get_payouts(self, bip_total, by_node="", min_delegated=0, stop_list=None):
+        """
+        Создает словарь адрес - выплата
+        :param stop_list: list ['Mx...1', 'Mx...2', ...]
+        :param bip_total: float/int
+        :param by_node: str 'Mp....'
+        :param min_delegated: float/int Минимальное количество делегированных токенов
+        :return: dict {address: bip_value, ...}
+        """
+        stop_list = stop_list or [] or self.stop_list
+        min_delegated = min_delegated or self.min_delegated
+
+        delegators = self.get_delegations(by_node=by_node, min_delegated=min_delegated, stop_list=stop_list)
+
+        # Получаем сумму выплаты в BIP для каждого делегатора
+        tokens_sum = sum(delegators.values())
+        for key in delegators:
+            delegators[key] = bip_total * Decimal(str(delegators[key])) / Decimal(str(tokens_sum))
+
+        return delegators
