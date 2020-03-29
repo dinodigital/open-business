@@ -7,7 +7,7 @@ from sdk.settings import API
 
 class Delegators:
 
-    def __init__(self, token, min_delegated=0, stop_list=None):
+    def __init__(self, token=None, min_delegated=0, stop_list=None):
         self.token = token
         self.min_delegated = min_delegated
         self.stop_list = stop_list or []
@@ -42,7 +42,7 @@ class Delegators:
         # Получаем словарь со всеми делегаторами и суммарное количество заделегированных токенов
         delegators = {}
         for stake in stakes:
-            if stake['coin'] == self.token and stake['owner'] not in stop_list and stake['value'] >= min_delegated:
+            if (stake['coin'] == self.token or self.token == None) and stake['owner'] not in stop_list and stake['value'] >= min_delegated:
                 if stake['owner'] not in delegators.keys():
                     delegators[stake['owner']] = to_bip(stake['value'])
                 else:
