@@ -1,4 +1,4 @@
-## Open Business SDK
+## Minter Business SDK
 Автоматизируйте переводы, распределяйте доходы, платите делегаторам и конвертируйте токены, не забивая голову механизмами работы блокчейна. Оно просто работает.
 
 ## Установка
@@ -92,3 +92,19 @@ wallet.get_bip_balance()
 # Возвращает количество BIP на кошельке
 ```
 
+## Примеры
+
+### Работа с другой нодой
+```python
+from minterbiz.sdk import Wallet
+
+# Основные параметры ноды
+node = {
+    'url': 'http://адрес ноды',
+    'headers': {'Project-Id': '...', 'Project-Secret': '...'},
+    'timeouts': {'read_timeout': 6, 'connect_timeout': 7}
+}
+
+# Инициализация кошелька с другой нодой
+wallet = Wallet(seed='12 слов seed фразы', node=node)
+```
