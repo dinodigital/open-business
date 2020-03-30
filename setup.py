@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="minterbiz",
-    version="1.0.1",
+    version="1.0.0",
     author="Andrey Gorbunov",
     author_email="dinodigital@yandex.ru",
-    description="Minter business automation solution",
+    description="Minter business constructor",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dinodigital/Open_business",
