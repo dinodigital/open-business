@@ -7,7 +7,7 @@
 
 ## Пример использования
 ```python
-from sdk.wallet import Wallet
+from minterbiz.sdk import Wallet
 
 # Инициализируем кошелек
 my_wallet = Wallet(seed="12 слов вашей seed фразы")

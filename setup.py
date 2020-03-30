@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="sdk",
+    name="minterbiz",
     version="1.0.1",
     author="Andrey Gorbunov",
     author_email="dinodigital@yandex.ru",

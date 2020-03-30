@@ -6,13 +6,7 @@ from mintersdk.sdk.transactions import MinterSellCoinTx, MinterSellAllCoinTx, Mi
 from mintersdk.sdk.wallet import MinterWallet
 from mintersdk.shortcuts import to_bip
 
-default_node = {
-    'url': 'https://mnt.funfasy.dev/',
-    'timeouts': {'read_timeout': 6, 'connect_timeout': 7},
-    'headers': {}
-}
-
-default_API = MinterAPI(default_node['url'], headers=default_node['headers'], **default_node['timeouts'])
+from minterbiz.settings import default_API
 
 
 class Wallet:
