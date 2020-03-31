@@ -184,7 +184,7 @@ class Wallet:
 
         # Генерация общего списка транзакций и расчет общей суммы выплаты
         all_txs = []
-        total_value = 0
+        total_value = Decimal('0')
         for d_address, d_value in to_dict.items():
             d_value = Decimal(str(d_value))
             all_txs.append({'coin': coin, 'to': d_address, 'value': d_value})
@@ -221,7 +221,6 @@ class Wallet:
             for tx in tx_templates:
                 for tx_dict in tx.txs:
                     tx_dict['value'] = new_total_value * Decimal(str(tx_dict['value'])) / Decimal(str(total_value))
-                    print(tx_dict['value'])
         else:
             total_value -= total_commission
             if total_value <= 0:
@@ -354,8 +353,8 @@ class Delegators:
         delegators = self.get_delegations(by_node=by_node, min_delegated=min_delegated, stop_list=stop_list)
 
         # Получаем сумму выплаты в BIP для каждого делегатора
-        tokens_sum = sum(delegators.values())
+        tokens_sum = Decimal(str(sum(delegators.values())))
         for key in delegators:
-            delegators[key] = Decimal(str(bip_total)) * Decimal(str(delegators[key])) / Decimal(str(tokens_sum))
+            delegators[key] = round(Decimal(str(bip_total)) * Decimal(str(delegators[key])) / Decimal(str(tokens_sum)), 18)
 
         return delegators
