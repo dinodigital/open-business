@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="minterbiz",
-    version="1.0.3",
+    version="1.0.5",
     author="Andrey Gorbunov",
     author_email="dinodigital@yandex.ru",
     description="Minter business constructor",

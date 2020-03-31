@@ -32,7 +32,7 @@ class Wallet:
         """
         Получаем баланс кошелька в BIP
         """
-        return self.API.get_balance(self.address, pip2bip=True)['result']['balance']
+        return self.API.get_balance(self.address, pip2bip=True)['result']['balance']['BIP']
 
     def convert(self, value, from_symbol, to_symbol):
         """
@@ -74,7 +74,12 @@ class Wallet:
 
         # Отправляем транзакицю
         tx.sign(private_key=self.private_key)
-        return self.API.send_transaction(tx.signed_tx)
+        self.API.send_transaction(tx.signed_tx)
+
+        # Ждем nonce (уходим от ошибки двойной транзакции в блоке)
+        self._wait_for_nonce(nonce)
+
+        return
 
     def convert_all_coins_to(self, symbol):
         """
@@ -86,8 +91,7 @@ class Wallet:
         if self._only_symbol(balances, symbol):
             return
 
-        del (balances[symbol])
-        for i, coin in enumerate(balances, 1):
+        for coin in balances:
             if coin == symbol:
                 continue
 
@@ -100,8 +104,7 @@ class Wallet:
 
             print(f'{coin} сконвертирован в {symbol}')
 
-            if i != len(balances):
-                self._wait_for_nonce(nonce)
+            self._wait_for_nonce(nonce)
 
     def pay(self, payouts, coin="BIP", payload='', include_commission=True):
         """
@@ -169,7 +172,12 @@ class Wallet:
             return
 
         tx.sign(private_key=self.private_key)
-        return self.API.send_transaction(tx.signed_tx)
+
+        r = self.API.send_transaction(tx.signed_tx)
+
+        self._wait_for_nonce(nonce)
+
+        return r
 
     def multisend(self, to_dict, coin="BIP", payload='', include_commission=True):
         """
@@ -234,8 +242,7 @@ class Wallet:
             tx.sign(self.private_key)
             r = self.API.send_transaction(tx.signed_tx)
             r_out.append(r)
-            if len(tx_templates) > 1:
-                self._wait_for_nonce(tx.nonce)
+            self._wait_for_nonce(tx.nonce)
 
         return r_out
 
