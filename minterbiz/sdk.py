@@ -356,6 +356,6 @@ class Delegators:
         # Получаем сумму выплаты в BIP для каждого делегатора
         tokens_sum = sum(delegators.values())
         for key in delegators:
-            delegators[key] = bip_total * Decimal(str(delegators[key])) / Decimal(str(tokens_sum))
+            delegators[key] = Decimal(str(bip_total)) * Decimal(str(delegators[key])) / Decimal(str(tokens_sum))
 
         return delegators
