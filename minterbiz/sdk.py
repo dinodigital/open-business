@@ -5,7 +5,7 @@ from pprint import pprint
 from mintersdk.minterapi import MinterAPI
 from mintersdk.sdk.transactions import MinterSellCoinTx, MinterSellAllCoinTx, MinterSendCoinTx, MinterMultiSendCoinTx
 from mintersdk.sdk.wallet import MinterWallet
-from mintersdk.shortcuts import to_bip, to_pip
+from mintersdk.shortcuts import to_bip
 
 from minterbiz.settings import default_API
 
@@ -37,7 +37,6 @@ class Wallet:
 
     def convert(self, value, from_symbol, to_symbol, gas_coin=None):
         """
-        TODO: Include commission
         Конвертирует одну монету в другую
         :param gas_coin: str 'SYMBOL' - монета для оплаты комиссии
         :param value: int/float
@@ -71,10 +70,15 @@ class Wallet:
 
         # Проверяем достаточно ли баланса на оплату комиссии
         commission = to_bip(tx.get_fee())
-        if balances[from_symbol] < (value + commission):
+        if gas_coin == from_symbol and balances[from_symbol] < (value + commission):
             print(f"На кошельке недостаточно {from_symbol} для оплаты комиссии {commission}\n"
                   f"Баланс: {round(balances[from_symbol], 2)}\n"
                   f"Нужно:  {value + commission} (+{value + commission - round(balances[from_symbol], 2)})")
+            return
+        elif balances[gas_coin] < commission:
+            print(f"На кошельке недостаточно {gas_coin} для оплаты комиссии {commission}\n"
+                  f"Баланс: {round(balances[gas_coin], 2)}\n"
+                  f"Нужно:  {commission}")
             return
 
         # Отправляем транзакицю
@@ -92,7 +96,6 @@ class Wallet:
 
     def convert_all_coins_to(self, symbol, gas_coin=None):
         """
-        TODO: Include commission
         Конвертирует все монеты на кошельке в symbol
         """
         symbol = symbol.upper()

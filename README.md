@@ -2,8 +2,10 @@
 Автоматизируйте переводы, распределяйте доходы, платите делегаторам и конвертируйте токены, не забивая голову механизмами работы блокчейна. Оно просто работает.
 
 ## Установка
-1. Склонируйте репозиторий `git clone https://github.com/dinodigital/Open_business.git` в папку проекта
-2. (необязательно) Укажите url api-ноды в `sdk/settings.py` и headers, если нода приватная
+1. Установите библиотеку `pip install minterbiz`
+2. Имортируйте класс Wallet `from minterbiz.sdk import Wallet`
+3. (рекомендуется) Настройте url и другие параметры ноды. По умолчанию используется публичная нода funfasy.dev с лимитом 10 запросов в 10 секунд
+
 
 ## Пример использования
 ```python
@@ -63,18 +65,20 @@ wallet.pay_token_delegators(delegated_token, to_be_payed, by_node='', min_delega
 
 #### Конвертировать одну монету в другую
 ```python
-wallet.convert(value, from_symbol, to_symbol)
+wallet.convert(value, from_symbol, to_symbol, gas_coin=None)
 
 # value (int/float) - столько монет (from_symbol) будет сконвертировано
 # from_symbol (str 'SYMBOL') - монета, которую продаем
 # to_symbol (str 'SYMBOL') - монета, которую покупаем
+# gas_coin (str 'SYMBOL') - монета для оплаты комиссии. По умолчанию та же, которую продаем.
 ```
 
 #### Конвертировать весь баланс кошелька в определенную монету
 ```python
-wallet.convert_all_coins_to(symbol)
+wallet.convert_all_coins_to(symbol, gas_coin=None)
 
 # symbol (str 'SYMBOL') - монета, в которую конвертируем все остальные
+# gas_coin (str 'SYMBOL') - монета для оплаты комиссии. По умолчанию та же, которую продаем.
 ```
 
 #### Получить балансы всех монет на кошельке
