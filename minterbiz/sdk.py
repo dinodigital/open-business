@@ -1,10 +1,11 @@
 import time
 from decimal import Decimal
+from pprint import pprint
 
 from mintersdk.minterapi import MinterAPI
 from mintersdk.sdk.transactions import MinterSellCoinTx, MinterSellAllCoinTx, MinterSendCoinTx, MinterMultiSendCoinTx
 from mintersdk.sdk.wallet import MinterWallet
-from mintersdk.shortcuts import to_bip
+from mintersdk.shortcuts import to_bip, to_pip
 
 from minterbiz.settings import default_API
 
@@ -34,9 +35,11 @@ class Wallet:
         """
         return self.API.get_balance(self.address, pip2bip=True)['result']['balance']['BIP']
 
-    def convert(self, value, from_symbol, to_symbol):
+    def convert(self, value, from_symbol, to_symbol, gas_coin=None):
         """
+        TODO: Include commission
         Конвертирует одну монету в другую
+        :param gas_coin: str 'SYMBOL' - монета для оплаты комиссии
         :param value: int/float
         :param from_symbol: str (Тикер монеты)
         :param to_symbol: str (Тикер монеты)
@@ -46,11 +49,13 @@ class Wallet:
         from_symbol = from_symbol.upper()
         to_symbol = to_symbol.upper()
         value = Decimal(str(value))
+        if gas_coin is None:
+            gas_coin = from_symbol
 
         balances = self.get_balance(in_bip=True)
 
-        if balances[from_symbol] <= value:
-            print(f"На кошельке недостаточно {from_symbol}")
+        if balances[from_symbol] < value:
+            print(f"На кошельке недостаточно {from_symbol}. Нужно {value}, а есть {balances[from_symbol]}")
             return
 
         # Генерируем транзакцию
@@ -61,12 +66,12 @@ class Wallet:
             coin_to_buy=to_symbol,
             min_value_to_buy=0,
             nonce=nonce,
-            gas_coin=from_symbol
+            gas_coin=gas_coin
         )
 
         # Проверяем достаточно ли баланса на оплату комиссии
         commission = to_bip(tx.get_fee())
-        if balances[from_symbol] <= (value + commission):
+        if balances[from_symbol] < (value + commission):
             print(f"На кошельке недостаточно {from_symbol} для оплаты комиссии {commission}\n"
                   f"Баланс: {round(balances[from_symbol], 2)}\n"
                   f"Нужно:  {value + commission} (+{value + commission - round(balances[from_symbol], 2)})")
@@ -74,19 +79,26 @@ class Wallet:
 
         # Отправляем транзакицю
         tx.sign(private_key=self.private_key)
-        self.API.send_transaction(tx.signed_tx)
+        r = self.API.send_transaction(tx.signed_tx)
 
-        # Ждем nonce (уходим от ошибки двойной транзакции в блоке)
-        self._wait_for_nonce(nonce)
+        try:
+            if r['result']['code'] == 0:
+                print(f'{from_symbol} сконвертирован в {to_symbol}')
+                self._wait_for_nonce(nonce)  # Ждем nonce, чтобы предотвратить отправку нескольких транзакций в блоке
+        except Exception:
+            print(f'Не удалось сконвертировать {from_symbol} в {to_symbol}\nServer response: {r}')
 
-        return
+        return r
 
-    def convert_all_coins_to(self, symbol):
+    def convert_all_coins_to(self, symbol, gas_coin=None):
         """
+        TODO: Include commission
         Конвертирует все монеты на кошельке в symbol
         """
         symbol = symbol.upper()
         balances = self.get_balance()
+        if gas_coin is None:
+            gas_coin = symbol
 
         if self._only_symbol(balances, symbol):
             return
@@ -97,14 +109,19 @@ class Wallet:
 
             nonce = self.API.get_nonce(self.address)
             tx = MinterSellAllCoinTx(
-                coin_to_sell=coin, coin_to_buy=symbol, min_value_to_buy=0, nonce=nonce, gas_coin=coin
+                coin_to_sell=coin, coin_to_buy=symbol, min_value_to_buy=0, nonce=nonce, gas_coin=gas_coin
             )
             tx.sign(private_key=self.private_key)
-            self.API.send_transaction(tx.signed_tx)
+            r = self.API.send_transaction(tx.signed_tx)
 
-            print(f'{coin} сконвертирован в {symbol}')
+            try:
+                if r['result']['code'] == 0:
+                    print(f'{coin} сконвертирован в {symbol}')
+                    self._wait_for_nonce(nonce)  # Ждем nonce, чтобы предотвратить отправку нескольких транзакций в блоке
+            except Exception:
+                print(f'Не удалось сконвертировать {coin} в {symbol}\nServer response: {r}')
 
-            self._wait_for_nonce(nonce)
+            return r
 
     def pay(self, payouts, coin="BIP", payload='', include_commission=True):
         """
@@ -175,7 +192,12 @@ class Wallet:
 
         r = self.API.send_transaction(tx.signed_tx)
 
-        self._wait_for_nonce(nonce)
+        try:
+            if r['result']['code'] == 0:
+                print(f'{value} {coin} успешно отпрвлены на адрес {to}')
+                self._wait_for_nonce(nonce)  # Ждем nonce, чтобы предотвратить отправку нескольких транзакций в блоке
+        except Exception:
+            print(f'Не удалось отправить {coin}\nServer response: {r}')
 
         return r
 
@@ -192,7 +214,7 @@ class Wallet:
 
         # Генерация общего списка транзакций и расчет общей суммы выплаты
         all_txs = []
-        total_value = Decimal('0')
+        total_value = 0
         for d_address, d_value in to_dict.items():
             d_value = Decimal(str(d_value))
             all_txs.append({'coin': coin, 'to': d_address, 'value': d_value})
@@ -241,8 +263,16 @@ class Wallet:
             tx.nonce = self.API.get_nonce(self.address)
             tx.sign(self.private_key)
             r = self.API.send_transaction(tx.signed_tx)
+
+            try:
+                if r['result']['code'] == 0:
+                    print(f'Multisend для {len(tx.txs)} получателей успешно отправлен')
+                    self._wait_for_nonce(tx.nonce)  # Ждем nonce, чтобы предотвратить отправку нескольких транзакций в блоке
+
+            except Exception:
+                print(f'Не удалось отправить multisend\nServer response: {r}')
+
             r_out.append(r)
-            self._wait_for_nonce(tx.nonce)
 
         return r_out
 

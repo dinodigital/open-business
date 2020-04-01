@@ -87,11 +87,11 @@
         },
         "minter-sdk": {
             "hashes": [
-                "sha256:cc4ab1f1ecee77f775800174a3647b6b4d4894c456b69a0542bb940170e7d81b",
-                "sha256:ee36c2f97af4ea27c28cd883dfcbdd5316c8d6a3f1043aba83b5ccde63c9227f"
+                "sha256:36051729788a318755d94fbb35db991687bd51fe4199c8242dd676cef8e6cc50",
+                "sha256:f8ee91134cd542dcb5b4a0d4a9a66a88866dc1272cfd27c9567e52f968a170e5"
             ],
             "index": "pypi",
-            "version": "==1.0.24"
+            "version": "==1.0.26"
         },
         "mnemonic": {
             "hashes": [
