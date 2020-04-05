@@ -370,11 +370,15 @@ class Delegators:
         # Получаем словарь со всеми делегаторами и суммарное количество заделегированных токенов
         delegators = {}
         for stake in stakes:
-            if (stake['coin'] == self.token or self.token is None) and stake['owner'] not in stop_list and stake['value'] >= min_delegated:
+            if (stake['coin'] == self.token or self.token is None) and stake['owner'] not in stop_list:
                 if stake['owner'] not in delegators.keys():
                     delegators[stake['owner']] = to_bip(stake['value'])
                 else:
                     delegators[stake['owner']] += to_bip(stake['value'])
+
+        # Фильтруем делегаторов по минимальной сумме
+        if min_delegated > 0:
+            delegators = {k: v for k, v in delegators.items() if v >= min_delegated}
 
         return delegators
 
