@@ -13,9 +13,10 @@ from minterbiz.settings import default_API
 class Wallet:
 
     def __init__(self, seed, pk=None, node=None):
+        tmp = MinterWallet.create(mnemonic=seed)
         self.seed = seed
-        self.private_key = pk or MinterWallet.create(mnemonic=seed)['private_key']
-        self.address = MinterWallet.create(mnemonic=seed)['address']
+        self.private_key = pk or tmp['private_key']
+        self.address = tmp['address']
         self.node = node
         self.API = MinterAPI(node['url'], headers=node['headers'], **node['timeouts']) if node else default_API
 
