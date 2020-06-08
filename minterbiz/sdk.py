@@ -319,7 +319,7 @@ class Wallet:
             if nonce != old_nonce:
                 break
 
-            time.sleep(1)
+            time.sleep(3)
 
     @staticmethod
     def _only_symbol(balances, symbol):
